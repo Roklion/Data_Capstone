@@ -1,0 +1,396 @@
+---
+title: "Exploratory Analysis and Milestone Report"
+author: "Yao Dong Yu"
+date: "May 16, 2016"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+This is the milestone report for the Data Science Specialization Capstone Project. The following sections include brief description of the data, exploratory analysis of the data and project planning.
+<br>
+
+The following libraries are used for this project:
+```{r, warning=FALSE, message=FALSE}
+library(NLP)
+library(ggplot2)
+library(wordcloud)
+library(RColorBrewer)
+```
+<br><br>
+
+# Data Description and Processing
+## Text Sources
+The data of this project is provided by SwiftKey and downloaded from [here](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip). The zip file downloaded included text files of four locale - English, German, Russian and Finnish. In this report, we will focus on only English text database.
+
+The files are listed here:
+```{r}
+list.files("./data", recursive = TRUE)
+```
+
+Load all three files in English:
+```{r, warning=FALSE}
+# Load files
+f_en.blogs <- scan("./data/en_US/en_US.blogs.txt", what="char", sep="\n", 
+                   strip.white=TRUE, blank.lines.skip=TRUE, encoding = 'UTF-8')
+f_en.twitter <- scan("./data/en_US/en_US.twitter.txt", what="char", sep="\n",
+                     strip.white=TRUE, blank.lines.skip=TRUE, encoding = 'UTF-8')
+f_en.news <- scan("./data/en_US/en_US.news.txt", what="char", sep="\n",
+                  strip.white=TRUE, blank.lines.skip=TRUE, encoding = 'UTF-8')
+```
+<br>
+
+## Text Processing
+These raw files are processed to remove non-graphic characters and punctuations. Then the preprocessed text is broken into words.
+
+**Note:** Only example code for the twitter file is shown in the following report.
+```{r}
+# Remove all non-graphic characters
+en.twitter <- gsub("[^[:graph:]]", " ", f_en.twitter)
+en.twitter <- tolower(en.twitter)
+# Replace everything not belonging to one of the non-alphabetic chars, space
+#  and ' with a single space
+en.twitter <- gsub("[^[:alnum:][:space:]']", " ", en.twitter)
+# Remove ' as quotation marks
+en.twitter <- gsub(" \'|\' ", " ", en.twitter)
+# Remove numbers
+en.twitter <- gsub("\\d+", " ", en.twitter)
+# Remove excess spaces
+en.twitter <- gsub("\\s+", " ", en.twitter)
+# Remove trailing spaces
+en.twitter <- gsub("[ \t]+$", "", en.twitter)
+# Break sentences into words, delimiting by spaces
+en.twitter.list <- strsplit(en.twitter, " +")
+en.twitter.vector <- unlist(en.twitter.list)
+# Summary word vector into a frequency table
+en.twitter.freq <- table(en.twitter.vector)
+# Sort frequency to high to low
+en.twitter.sorted.freq <- sort(en.twitter.freq, decreasing = TRUE)
+```
+```{r, echo = FALSE}
+# blog file
+en.blogs <- gsub("[^[:graph:]]", " ", f_en.blogs)
+en.blogs <- tolower(en.blogs)
+en.blogs <- gsub("[^[:alnum:][:space:]']", " ", en.blogs)
+en.blogs <- gsub(" \'|\' ", " ", en.blogs)
+en.blogs <- gsub("\\d+", " ", en.blogs)
+en.blogs <- gsub("\\s+", " ", en.blogs)
+en.blogs <- gsub("[ \t]+$", "", en.blogs)
+en.blogs.list <- strsplit(en.blogs, " +")
+en.blogs.vector <- unlist(en.blogs.list)
+en.blogs.freq <- table(en.blogs.vector)
+en.blogs.sorted.freq <- sort(en.blogs.freq, decreasing = TRUE)
+
+# news file
+en.news <- gsub("[^[:graph:]]", " ", f_en.news)
+en.news <- tolower(en.news)
+en.news <- gsub("[^[:alnum:][:space:]']", " ", en.news)
+en.news <- gsub(" \'|\' ", " ", en.news)
+en.news <- gsub("\\d+", " ", en.news)
+en.news <- gsub("\\s+", " ", en.news)
+en.news <- gsub("[ \t]+$", "", en.news)
+en.news.list <- strsplit(en.news, " +")
+en.news.vector <- unlist(en.news.list)
+en.news.freq <- table(en.news.vector)
+en.news.sorted.freq <- sort(en.news.freq, decreasing = TRUE)
+```
+<br>
+
+With all three files loaded, a master database is created for the collection of all text.
+```{r}
+# Combine word vectors of three files
+en.all.vector <- c(en.twitter.vector, en.blogs.vector, en.news.vector)
+en.all.freq <- table(en.all.vector)
+en.all.sorted.freq <- sort(en.all.freq, decreasing = TRUE)
+```
+<br>
+
+## Frequency Summary
+With unique word frequency sorted in each file, the five number summary of word frequency is shown below:
+```{r}
+summary(en.twitter.sorted.freq)
+summary(en.blogs.sorted.freq)
+summary(en.news.sorted.freq)
+summary(en.all.sorted.freq)
+```
+Clearly, the frequency distributions are **highly negatively skewed**, i.e. most words have very low frequency while a small portion of the words are much more frequently used.
+<br>
+
+## Word Coverage
+The number of unique words to provide 50% and 90% total word coverage is found as following:
+```{r}
+line_ct.twitter <- length(en.twitter)
+word_ct.twitter <- length(en.twitter.vector)
+unique.twitter <- length(en.twitter.freq)
+# Find number of top used unique words to cover 50% of all texts
+acc_words <- 0
+cover_count <- 0
+while (acc_words < 0.5*word_ct.twitter) {
+    cover_count <- cover_count + 1
+    # Add count of the next frequently used word
+    acc_words <- acc_words + en.twitter.sorted.freq[[cover_count]]
+}
+cover50.twitter <- cover_count
+# Keep searching until 90% coverage is foundFind number of top used unique words
+#  to cover 90% of all texts
+while (acc_words < 0.9*word_ct.twitter) {
+    cover_count <- cover_count + 1
+    acc_words <- acc_words + en.twitter.sorted.freq[[cover_count]]
+}
+cover90.twitter <- cover_count
+```
+```{r, echo = FALSE}
+# blogs
+line_ct.blogs <- length(en.blogs)
+word_ct.blogs <- length(en.blogs.vector)
+unique.blogs <- length(en.blogs.freq)
+acc_words <- 0
+cover_count <- 0
+while (acc_words < 0.5*word_ct.blogs) {
+    cover_count <- cover_count + 1
+    acc_words <- acc_words + en.blogs.sorted.freq[[cover_count]]
+}
+cover50.blogs <- cover_count
+while (acc_words < 0.9*word_ct.blogs) {
+    cover_count <- cover_count + 1
+    acc_words <- acc_words + en.blogs.sorted.freq[[cover_count]]
+}
+cover90.blogs <- cover_count
+# news
+line_ct.news <- length(en.news)
+word_ct.news <- length(en.news.vector)
+unique.news <- length(en.news.freq)
+acc_words <- 0
+cover_count <- 0
+while (acc_words < 0.5*word_ct.news) {
+    cover_count <- cover_count + 1
+    acc_words <- acc_words + en.news.sorted.freq[[cover_count]]
+}
+cover50.news <- cover_count
+while (acc_words < 0.9*word_ct.news) {
+    cover_count <- cover_count + 1
+    acc_words <- acc_words + en.news.sorted.freq[[cover_count]]
+}
+cover90.news <- cover_count
+# SUM
+word_ct.all <- length(en.all.vector)
+unique.all <- length(en.all.freq)
+acc_words <- 0
+cover_count <- 0
+while (acc_words < 0.5*word_ct.all) {
+    cover_count <- cover_count + 1
+    acc_words <- acc_words + en.all.sorted.freq[[cover_count]]
+}
+cover50.all <- cover_count
+while (acc_words < 0.9*word_ct.all) {
+    cover_count <- cover_count + 1
+    acc_words <- acc_words + en.all.sorted.freq[[cover_count]]
+}
+cover90.all <- cover_count
+```
+<br>
+
+# Bigrams and Trigrams
+Create bigrams and trigrams from word vector.
+```{r}
+# Generate bigrams/trigrams
+bigram.twitter <- vapply(ngrams(en.twitter.vector, n = 2),
+                         paste, "", collapse = " ")
+trigram.twitter <- vapply(ngrams(en.twitter.vector, n = 3),
+                          paste, "", collapse = " ")
+# Unique n-grams
+bi_freq.twitter <- table(bigram.twitter)
+tri_freq.twitter <- table(trigram.twitter)
+bi_freq_sorted.twitter <- sort(bi_freq.twitter, decreasing = TRUE)
+tri_freq_sorted.twitter  <- sort(tri_freq.twitter, decreasing = TRUE)
+# Some stats
+bi_ct.twitter <- length(bigram.twitter)
+tri_ct.twitter <- length(trigram.twitter)
+bi_unique_ct.twitter <- length(bi_freq.twitter)
+tri_unique_ct.twitter <- length(tri_freq.twitter)
+```
+```{r, echo = FALSE}
+# blogs
+bigram.blogs <- vapply(ngrams(en.blogs.vector, n = 2),
+                       paste, "", collapse = " ")
+trigram.blogs <- vapply(ngrams(en.blogs.vector, n = 3),
+                        paste, "", collapse = " ")
+bi_freq.blogs <- table(bigram.blogs)
+tri_freq.blogs <- table(trigram.blogs)
+bi_freq_sorted.blogs <- sort(bi_freq.blogs, decreasing = TRUE)
+tri_freq_sorted.blogs <- sort(tri_freq.blogs, decreasing = TRUE)
+bi_ct.blogs <- length(bigram.blogs)
+tri_ct.blogs <- length(trigram.blogs)
+bi_unique_ct.blogs <- length(bi_freq.blogs)
+tri_unique_ct.blogs <- length(tri_freq.blogs)
+# news
+bigram.news <- vapply(ngrams(en.news.vector, n = 2),
+                      paste, "", collapse = " ")
+trigram.news <- vapply(ngrams(en.news.vector, n = 3),
+                       paste, "", collapse = " ")
+bi_freq.news <- table(bigram.news)
+tri_freq.news <- table(bigram.news)
+bi_freq_sorted.news <- sort(bi_freq.news, decreasing = TRUE)
+tri_freq_sorted.news <- sort(tri_freq.news, decreasing = TRUE)
+bi_ct.news <- length(bigram.news)
+tri_ct.news <- length(trigram.news)
+bi_unique_ct.news <- length(bi_freq.news)
+tri_unique_ct.news <- length(tri_freq.news)
+# all
+bigram.all <- vapply(ngrams(en.all.vector, n = 2),
+                       paste, "", collapse = " ")
+trigram.all <- vapply(ngrams(en.all.vector, n = 3),
+                        paste, "", collapse = " ")
+bi_freq.all <- table(bigram.all)
+tri_freq.all <- table(trigram.all)
+bi_freq_sorted.all <- sort(bi_freq.all, decreasing = TRUE)
+tri_freq_sorted.all <- sort(tri_freq.all, decreasing = TRUE)
+bi_ct.twitter <- length(bigram.all)
+tri_ct.twitter <- length(trigram.all)
+bi_unique_ct.all <- length(bi_freq.all)
+tri_unique_ct.all <- length(tri_freq.all)
+```
+<br>
+
+## Summary Statistics
+A quick summary of all three files is provided in the following table, showing line count, total word count and unique word count of each file, as well as of the sum of three files:
+```{r}
+# Summary table
+text_summary <- data.frame(row.names = c("twitter", "blogs", "news", "SUM"),
+                           numLines = c(line_ct.twitter, line_ct.blogs, 
+                                        line_ct.news,
+                                        line_ct.twitter+line_ct.blogs+line_ct.news),
+                           numWords = c(word_ct.twitter, word_ct.blogs,
+                                        word_ct.news, word_ct.all),
+                           numUnigram = c(unique.twitter, unique.blogs,
+                                          unique.news, unique.all),
+                           cover50 = c(cover50.twitter, cover50.blogs, cover50.news,
+                                       cover50.all),
+                           cover90 = c(cover90.twitter, cover90.blogs, cover90.news,
+                                       cover90.all),
+                           numBigram = c(bi_unique_ct.twitter, bi_unique_ct.blogs,
+                                         bi_unique_ct.news, bi_unique_ct.all),
+                           numTrigram = c(tri_unique_ct.twitter, tri_unique_ct.blogs,
+                                          tri_unique_ct.news, tri_unique_ct.all))
+print(text_summary)
+```
+<br><br>
+
+# Data Intepretation and Exploratory Anlysis
+In this section, only the **combined** text database is used for plotting.
+The frequency summary table is stored in dataframes for analysis and plotting.
+```{r}
+# all
+df_unigram.all <- data.frame(word = names(en.all.sorted.freq),
+                               frequency = en.all.sorted.freq,
+                               row.names = NULL)
+df_bigram.all <- data.frame(word = names(bi_freq_sorted.all),
+                              frequency = bi_freq_sorted.all,
+                              row.names = NULL)
+df_trigram.all <- data.frame(word = names(tri_freq_sorted.all),
+                               frequency = tri_freq_sorted.all,
+                               row.names = NULL)
+```
+```{r, echo = FALSE}
+# twitter
+df_unigram.twitter <- data.frame(word = names(en.twitter.sorted.freq),
+                                 frequency = en.twitter.sorted.freq,
+                                 row.names = NULL)
+df_bigram.twitter <- data.frame(word = names(bi_freq_sorted.twitter),
+                                frequency = bi_freq_sorted.twitter,
+                                row.names = NULL)
+df_trigram.twitter <- data.frame(word = names(tri_freq_sorted.twitter),
+                                 frequency = tri_freq_sorted.twitter,
+                                 row.names = NULL)
+# blogs
+df_unigram.blogs <- data.frame(word = names(en.blogs.sorted.freq),
+                               frequency = en.blogs.sorted.freq,
+                               row.names = NULL)
+df_bigram.blogs <- data.frame(word = names(bi_freq_sorted.blogs),
+                              frequency = bi_freq_sorted.blogs,
+                              row.names = NULL)
+df_trigram.blogs <- data.frame(word = names(tri_freq_sorted.blogs),
+                               frequency = tri_freq_sorted.blogs,
+                               row.names = NULL)
+# news
+df_unigram.news <- data.frame(word = names(en.news.sorted.freq),
+                              frequency = en.news.sorted.freq,
+                              row.names = NULL)
+df_bigram.news <- data.frame(word = names(bi_freq_sorted.news),
+                             frequency = bi_freq_sorted.news,
+                             row.names = NULL)
+df_trigram.news <- data.frame(word = names(tri_freq_sorted.news),
+                              frequency = tri_freq_sorted.news,
+                              row.names = NULL)
+
+```
+<br>
+
+## Frequency Histogram
+The top frequently used 20 unigrams, bigrams and trigrams are plotted.
+```{r}
+g <- ggplot(head(df_unigram.all, 20),
+            aes(x=reorder(word, frequency),y=frequency)) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Unigrams") + ylab("Frequency") +
+  labs(title = "Top Unigrams by Frequency")
+print(g)
+```
+```{r, echo = FALSE}
+g <- ggplot(head(df_bigram.all, 20),
+            aes(x=reorder(word, frequency),y=frequency)) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Bigrams") + ylab("Frequency") +
+  labs(title = "Top Bigrams by Frequency")
+print(g)
+g <- ggplot(head(df_trigram.all, 20),
+            aes(x=reorder(word, frequency),y=frequency)) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Trigrams") + ylab("Frequency") +
+  labs(title = "Top Trigrams by Frequency")
+print(g)
+```
+<br>
+
+## Wordcloud
+Finally, create Wordclouds of unigrams, bigrams and trigrams.
+```{r}
+par(mar=rep(0, 4))
+pal <- brewer.pal(8, "Dark2")
+# scale and number of words are arbitrarily chosen for filling up the space
+wordcloud(df_unigram.all$word, df_unigram.all$frequency, scale=c(5, 0.7),
+          min.freq=100, max.words=300, random.color=FALSE, colors=pal,
+          rot.per = 0.25, random.order=FALSE)
+wordcloud(df_bigram.all$word, df_bigram.all$frequency, scale=c(4, 0.5),
+          min.freq=100, max.words=200, random.color=FALSE, colors=pal,
+          rot.per = 0.25, random.order=FALSE)
+wordcloud(df_trigram.all$word, df_trigram.all$frequency, scale=c(3, 0.1),
+          min.freq=100, max.words=150, random.color=FALSE, colors=pal,
+          rot.per = 0.25, random.order=FALSE)
+```
+<br><br>
+
+# Algorithm and App Planning
+## Goal
+The goal of the algorithm is to be **given an m-gram and predict the next 5 possible n-grams with descending probability of apperance**, where m + n <= 5. Therefore, probability distribution of upto 5-gram will be needed for the full prediction algorithm.
+
+## Workflow
+The prediction will be based on **conditional probability**. The workflow will be as following:
+1. For every known m-gram, calculate and rank conditional probabilities of the appearance of the next n-grams.
+2. Keep only the top 5 for each m-gram.
+3. When a certain m-gram is input by user, the top frequently used m-gram is output, followed by the next 4 frequently used m-grams.
+
+## Memory vs. Time 
+For prediction speed, **array or dictionary** is the most preferred data structure to be able to access predicted outcome with a time complexity of O(1). However, this would yield a huge memory requirement to store all n-grams and prediction.
+Consider the following during development to balance memory and time cost of the algorithm:
+1. Use a **Markov-chain** type of data structure to link given m-grams and their predictions;
+2. Consider less frequently used n-grams (e.g. occurrance with unconditioinal probability of less than 0.1%) as invalid data for training the algorithm and drop them from the frequency distribution;
+3. Delete unused intermediate variables once the algorithm is trained to save memory.
+
+## Other Potential Improvements
+1. *Unknown Input*: if an m-gram input is never seen, consider to use unconditional probability of appearance and/or only use a subset of the input for predicting the next n-gram.
+2. *More Data*: Consider to use more text sources available in the public domain such as publications, websites and etc. to train the prediction algorithm.
+3. *Source Optimization*: If the source of the input is specified (e.g. news, blogs or twitter), use an algorithm trained with the corresponded database to improve accuracy of the prediction.
+<br>
