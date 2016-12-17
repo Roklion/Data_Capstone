@@ -1,6 +1,5 @@
 ## Predict.R
 if (!exists("CONFIG.LOADED")) source("Config.R")
-source("ModelInput.R")
 source("CleanAlgo.R")
 
 input.str <- function(num.words.in, in.text, n)
@@ -19,14 +18,22 @@ get.next <- function(text)
     return (sort(unlist(next.predict[in.string]), decreasing = TRUE))
 }
 
-load.data(filename = file.predict.tb, path = source.path)
+clean.predict <- function(raw)
+{
+    predict.clean <- list()
+    for(predict in names(raw))
+    {
+        #print(predict)
+        key <- unlist(strsplit(predict, '.', fixed=TRUE))[2]
+        if(is.null(predict.clean[[key]]))
+        {
+            predict.clean[key] <- raw[[predict]]
+        }
+        else
+        {
+            predict.clean[key] <- max(raw[[predict]], predict.clean[[key]])
+        }
+    }
+    return (predict.clean)
+}
 
-inputs.clean <- clean.algo(inputs, rmSW, "english")
-
-predictions <- sapply(X = inputs.clean, FUN = get.next,
-                      simplify = TRUE, USE.NAMES = TRUE)
-
-save(predictions, file = paste0(source.path, file.predict.result))
-
-# Clean workspace
-remove(list = ls())

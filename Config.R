@@ -3,13 +3,13 @@ CONFIG.LOADED = TRUE
 
 # data path
 data.path <- "./data/"
-file.dir <- "en_US/"
+file.dir <- ""
 source.path <- paste0(data.path, file.dir)
 
 # Load data from filename and path
 load.data <- function(filename, path)
 {
-    load(paste0(path, filename), envir = .GlobalEnv)
+    load(paste0(path, filename), envir = globalenv())
 }
 
 # Clean params
@@ -19,7 +19,7 @@ rmSW <- FALSE
 max.Ngram <- 5
 
 # Data Reduction
-# unique words should cover max. 99% of text and with min. freq of 3 times
+# unique words should cover max. percent of text and with min. freq of word appearance
 max.cover <- 99
 min.freq <- 3
 
