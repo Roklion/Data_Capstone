@@ -1,0 +1,66 @@
+Next Word Predictor
+========================================================
+author: Yao Dong Yu
+date: Jan. 2, 2017
+autosize: true
+
+What is Next Word Predictor
+========================================================
+
+Next Word Predictor is a tool developed to make prediction of the upcoming word
+based on the given input phrase. The tool has the following characteristics:
+- Light-weighted (~20MB memory requirement)
+- Flexible (can be used for multiple languages once trained with appropriate language source)
+- Fast excution (3~5 seconds)
+
+Some special features supported by the tool include:
+- show multiple potential next word, in order of descending probability;
+- show probability of each of the resulted prediction
+
+Algorithm
+========================================================
+
+Next Word Predictor is built based on **conditional probability of occurrance**
+of a word appearing in the context given the preceded phrase. For example, phrase
+"*When I was a child, my dream was to become a ____*".
+
+| Length | Phrase | word 1 | prob. | word 2 | prob. | ...... |
+|--------|--------|-------------|-------|-------------|-------|--------|
+| 1      | a      | good        | 15%          | cup         | 8%            |        |
+| 2      | become a | great     | 20%          | scientist   | 17%           |        |
+| 3      | to become a | great  | 20%          | scientist   | 17%           |        |
+| 4      | was to become a | great | 20%       | scientist   | 17%           |        |
+| 5      | dream was to become a | scientist | 67% | astronaut | 33%         |        |
+
+The algorithm will take the **maximum** probability of appearance from the table 
+above and rank them to generate the final result.
+
+Shiny App 
+========================================================
+
+The Shiny App has 3 main sections: input (left), output (top right), and instructions
+(bottom right). Once the loading is complete, the loading bar at bottom right corner
+will disappear and the prediction tool is ready. User can adjust above the input box.
+
+<div align="center">
+    <img src="./presentation-figure/mainApp.png" width=450 height=250>
+    <img src="./presentation-figure/output.png" width=450 height=250>
+</div>
+
+Click "Predict!" botton to start the prediction algorith. It will take 3~5 seconds
+for the result to appear in the output section.
+
+
+Future Development
+========================================================
+
+There are several features that can be added to the alogirhm and App if more time 
+and resource allowed for this project:
+- By training the alogorithm separately with each text source (news, twitter and
+literature) and allowing user to select most suitable context for prediction, the
+algorithm can improve its accuracy.
+- The current fixed length of phrase could limit the performance of the 
+prediction, but unlimited length can increase memory requirement and prediction time. 
+A way to solve this is randomly sampling combination of words from the given phrase
+and make multiple predictions based on selected combos.
+
